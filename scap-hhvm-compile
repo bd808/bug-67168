@@ -69,8 +69,7 @@ echo Compiling HHBC in $OUTPUT_DIR
 
 # Create list of PHP source files excluding all MW branches
 find $SRC_DIR/ \
-    -type f -and \
-    \( -name '*.php' -o -name '*.inc' \) \
+    \( -name '*.php' -o -name '*.inc' \) -and \
     -not \( \
         -path '*/.git/*' -o \
         -path $SRC_DIR/php-\* -o \
@@ -84,7 +83,6 @@ sort > $SRC_LIST
 for branch in $BRANCHES; do
     echo Adding branch $branch
     find $SRC_DIR/php-${branch}/ \
-        -type f -and \
         \( -name '*.php' -o -name '*.inc' \) -and \
         -not \( \
             -path '*/.git/*' -o \
@@ -122,7 +120,7 @@ Repo {
         Path = ${OUTPUT_DIR}/hhvm.hhbc
     }
     Eval {
-        Mode = central
+        Mode = readonly
     }
     Local {
         Mode = --

@@ -7,6 +7,7 @@ TEST=( maintenance/benchmarks/benchmarkParse.php --wiki=enwiki NOFX )
 EXTRA=( --config-value Eval.Jit=false )
 
 repeat () {
+    echo "# $*"
     for i in {1..10}; do
         $*
     done
