@@ -1,0 +1,152 @@
+#!/usr/bin/env bash
+# Compile HHVM bytecode for multiversion and the active branches.
+#
+#/ Usage: scap-hhvm-compile [OPTIONS]
+#/   --branch,-b <BRANCH> : Mediawiki branch(es) to compile (eg 1.24wmf11).
+#/                          Default is output of `mwversionsinuse`
+#/   --help,-h            : This help information
+#/   --output,-o <DIR>    : Output directory. Default is `pwd`.
+#/   --source,-s <DIR>    : Source directory to compile.
+#/                          Default is /usr/local/apache/common-local.
+#/   --verbose,-v         : Verbose output.
+
+set -e
+
+usage () {
+    grep '^#/' <"$0" | cut -c4-
+}
+
+VERBOSITY=3
+OUTPUT_DIR=$(pwd)
+SRC_DIR=/usr/local/apache/common-local
+
+while test "$#" -gt 0; do
+    case "$1" in
+        --branch|-b)
+            BRANCHES="${BRANCHES:-}${BRANCHES:+ }$2"
+            shift 2
+            ;;
+        --help|-h)
+            usage
+            exit 0
+            ;;
+        --output|-o)
+            OUTPUT_DIR=$2
+            shift 2
+            ;;
+        --source|-s)
+            SRC_DIR=$2
+            shift 2
+            ;;
+        --verbose|-v)
+            VERBOSITY=4
+            shift
+            ;;
+        --)
+            shift
+            break
+            ;;
+        *)
+            echo "Unknown argument: $1" 1>&2
+            usage
+            exit 254
+            ;;
+    esac
+done
+shift $((OPTIND-1))
+
+: ${BRANCHES:=$(mwversionsinuse)}
+SRC_LIST=$OUTPUT_DIR/files.list
+LOG_FILE=$OUTPUT_DIR/compile.log
+
+[[ -d $OUTPUT_DIR ]] || mkdir -p $OUTPUT_DIR
+cd $OUTPUT_DIR
+
+# Log everything to $LOG_FILE
+exec > >(tee -a $LOG_FILE) 2>&1
+
+echo Compiling HHBC in $OUTPUT_DIR
+
+# Create list of PHP source files excluding all MW branches
+find $SRC_DIR/ -name '*.php' -and -not \( \
+    -path '*/.git/*' -o \
+    -path $SRC_DIR/php-\* -o \
+    -path '*/tests/*' -o \
+    -path '*/test/*' -o \
+    -path '*/docroot/*' \
+\) |
+sort > $SRC_LIST
+
+# Append PHP source files from each active branch
+for branch in $BRANCHES; do
+    echo Adding branch $branch
+    find $SRC_DIR/php-${branch}/ -name '*.php' -and -not \( \
+        -path '*/.git/*' -o \
+        -path '*/tests/*' -o \
+        -path '*/test/*' -o \
+        -path '*/selenium/*' -o \
+        -path '*/docroot/*' \
+    \) |
+    sort >> $SRC_LIST
+done
+
+# Run HHVM's bytecode compiler
+echo Starting compile @ $(date +%Y-%m-%dT%H:%M:%s)
+hhvm --hphp \
+    --target hhbc \
+    --format binary \
+    --force 1 \
+    --keep-tempdir 1 \
+    --gen-stats 1 \
+    --log $VERBOSITY \
+    --input-list $SRC_LIST \
+    --output-dir $OUTPUT_DIR
+echo Finished compile @ $(date +%Y-%m-%dT%H:%M:%s)
+
+# Generate a config file to go with the hhbc repo
+cat >$OUTPUT_DIR/config.hdf <<EOS
+Eval {
+  EnableZendCompat = true
+  Jit = true
+  PerfPidMap = false
+}
+Repo {
+    Authoritative = true
+    Central {
+        Path = ${OUTPUT_DIR}/hhvm.hhbc
+    }
+    Eval {
+        Mode = central
+    }
+    Local {
+        Mode = --
+    }
+}
+Log {
+  Level = Error
+  UseLogFile = true
+  UseSyslog = false
+  File = ${OUTPUT_DIR}/error.log
+  InjectedStackTrace = true
+  NativeStackTrace = true
+}
+MySQL {
+  TypedResults = false
+}
+DynamicExtensions {
+  FastStringSearch2 = /usr/local/lib/hphp/extensions/20131007/fss.so
+  wikidiff2 = /usr/local/lib/hphp/extensions/20131007/wikidiff2.so
+  luasandbox = /usr/local/lib/hphp/extensions/20131007/luasandbox.so
+}
+EOS
+
+# Make sure that the hhbc file is writeable by all.
+# Repo.Authoratative and Eval.Jit don't work if the file isn't writeable
+chmod 0666 $OUTPUT_DIR/hhvm.hhbc
+
+# The directory that the hhbc file is in needs to be writeable anyone using
+# the hhbc file as well. This is because the sqlite3 file uses an on disk
+# transaction journal.
+chmod o+w $OUTPUT_DIR
+
+echo Compiled HHBC to $OUTPUT_DIR

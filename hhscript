@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+# Run MWScript.php under hhvm
+
+HHVM_ARGS=( )
+MULTIVERSION=/usr/local/apache/common/multiversion
+
+while test "$#" -gt 0; do
+    case "$1" in
+        -c|--config)
+            HHVM_ARGS[${#HHVM_ARGS[@]}]=$1
+            HHVM_ARGS[${#HHVM_ARGS[@]}]=$2
+            shift; shift
+            ;;
+        --no-config)
+            HHVM_ARGS[${#HHVM_ARGS[@]}]=$1
+            shift
+            ;;
+        -v|--config-value)
+            HHVM_ARGS[${#HHVM_ARGS[@]}]=$1
+            HHVM_ARGS[${#HHVM_ARGS[@]}]=$2
+            shift; shift
+            ;;
+        --)
+            shift
+            break
+            ;;
+        *)
+            break
+            ;;
+
+    esac
+done
+
+sudo -u apache -- hhvm "${HHVM_ARGS[@]}" --file $MULTIVERSION/MWScript.php "$@"

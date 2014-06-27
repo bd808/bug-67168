@@ -1,0 +1,35 @@
+Tim described it better than anyone else:
+
+HHVM has a mode called RepoAuthoritative, which requires you to
+pre-compile all the bytecode before you run the program. It's said to
+give 30% faster execution or so. During pre-compilation for
+RepoAuthoritative, an attribute called AttrUnique is set on functions
+and classes that have only one implementation for a given name.
+
+So when there is only one MW version in pre-compilation, AttrUnique
+should be set on most things, but if there is more than version, it
+should be set on almost nothing. If you don't use RepoAuthoritative,
+it should also be set on nothing. AttrUnique is used by the IR and MC
+emitters, apparently for optimisation.
+
+My suspicion is that having multiple versions of MW will not
+completely stop code from being JITed, rather it will just give you a
+slowdown of up to 30%, equivalent to not using RepoAuthoritative.
+
+I think a good benchmark would be to parse some large page that has
+anything Lua-related stripped out of it (since LuaSandbox still has
+bugs in it). Then get benchmarks with:
+
+* RepoAuthoritative off
+* RepoAuthoritative on with one MW version precompiled
+* RepoAuthoritative on with two MW versions precompiled
+
+
+----
+./build.sh
+
+cd 1.24wmf11
+sudo -u apache -- hhvm \
+  --config $(pwd)/config.hdf \
+  --file /usr/local/apache/common-local/multiversion/MWScript.php \
+  eval.php --wiki=testwiki
