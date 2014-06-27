@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 # Run MWScript.php under hhvm
 
+set -e
+
 HHVM_ARGS=( )
-MULTIVERSION=/usr/local/apache/common/multiversion
+MULTIVERSION=/usr/local/apache/common-local/multiversion
 
 while test "$#" -gt 0; do
     case "$1" in
@@ -31,4 +33,4 @@ while test "$#" -gt 0; do
     esac
 done
 
-sudo -u apache -- hhvm "${HHVM_ARGS[@]}" --file $MULTIVERSION/MWScript.php "$@"
+sudo -u apache -- hhvm "${HHVM_ARGS[@]}" --file "$MULTIVERSION/MWScript.php" -- "$@"

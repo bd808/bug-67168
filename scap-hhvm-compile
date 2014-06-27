@@ -68,25 +68,31 @@ exec > >(tee -a $LOG_FILE) 2>&1
 echo Compiling HHBC in $OUTPUT_DIR
 
 # Create list of PHP source files excluding all MW branches
-find $SRC_DIR/ -name '*.php' -and -not \( \
-    -path '*/.git/*' -o \
-    -path $SRC_DIR/php-\* -o \
-    -path '*/tests/*' -o \
-    -path '*/test/*' -o \
-    -path '*/docroot/*' \
-\) |
-sort > $SRC_LIST
-
-# Append PHP source files from each active branch
-for branch in $BRANCHES; do
-    echo Adding branch $branch
-    find $SRC_DIR/php-${branch}/ -name '*.php' -and -not \( \
+find $SRC_DIR/ \
+    -type f -and \
+    \( -name '*.php' -o -name '*.inc' \) \
+    -not \( \
         -path '*/.git/*' -o \
+        -path $SRC_DIR/php-\* -o \
         -path '*/tests/*' -o \
         -path '*/test/*' -o \
-        -path '*/selenium/*' -o \
         -path '*/docroot/*' \
     \) |
+sort > $SRC_LIST
+
+# Append PHP source files from each branch
+for branch in $BRANCHES; do
+    echo Adding branch $branch
+    find $SRC_DIR/php-${branch}/ \
+        -type f -and \
+        \( -name '*.php' -o -name '*.inc' \) -and \
+        -not \( \
+            -path '*/.git/*' -o \
+            -path '*/tests/*' -o \
+            -path '*/test/*' -o \
+            -path '*/selenium/*' -o \
+            -path '*/docroot/*' \
+        \) |
     sort >> $SRC_LIST
 done
 

@@ -27,9 +27,4 @@ bugs in it). Then get benchmarks with:
 
 ----
 ./build.sh
-
-cd 1.24wmf11
-sudo -u apache -- hhvm \
-  --config $(pwd)/config.hdf \
-  --file /usr/local/apache/common-local/multiversion/MWScript.php \
-  eval.php --wiki=testwiki
+./test.sh
