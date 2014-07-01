@@ -2,25 +2,56 @@
 
 set -e
 
-TEST=( maintenance/benchmarks/benchmarkParse.php --wiki=enwiki NOFX )
-# FIXME: bug 66942
-EXTRA=( --config-value Eval.Jit=false )
+WIKI=enwiki
+VERSION=1.24wmf10
+PAGE=NOFX
+
+TEST=( maintenance/benchmarks/benchmarkParse.php --wiki=$WIKI $PAGE )
+NOJIT=( --config-value Eval.Jit=false )
+JIT=( --config-value Eval.Jit=true )
 
 repeat () {
     echo "# $*"
-    for i in {1..10}; do
+    for i in {1..15}; do
         $*
     done
 }
 
-echo Testing mwscript...
-repeat mwscript "${TEST[@]}"
+echo Test started at $(date +%Y-%m-%dT%H:%M)
+hhvm --version
+echo
 
-echo Testing hhvm, RepoAuthoritative off...
-repeat ./hhscript "${TEST[@]}"
+#echo Testing mwscript...
+#repeat mwscript "${TEST[@]}"
 
-echo Testing hhvm, RepoAuthoritative on with one MW version precompiled...
-repeat ./hhscript --config 1.24wmf10/config.hdf "${EXTRA[@]}" "${TEST[@]}"
+echo Testing hhvm, RepoAuthoritative off, No JIT ...
+echo =====================================================================
+repeat ./hhscript --config stock/config.hdf "${NOJIT[@]}" "${TEST[@]}"
+echo
 
-echo Testing hhvm, RepoAuthoritative on with two MW versions precompiled...
-repeat ./hhscript --config inuse/config.hdf "${EXTRA[@]}" "${TEST[@]}"
+echo Testing hhvm, RepoAuthoritative off, JIT ...
+echo =====================================================================
+repeat ./hhscript --config stock/config.hdf "${JIT[@]}" "${TEST[@]}"
+echo
+
+echo Testing hhvm, RepoAuthoritative on, No JIT, one MW version ...
+echo =====================================================================
+repeat ./hhscript --config $VERSION/config.hdf "${NOJIT[@]}" "${TEST[@]}"
+echo
+
+echo Testing hhvm, RepoAuthoritative on, JIT, one MW version ...
+echo =====================================================================
+repeat ./hhscript --config $VERSION/config.hdf "${JIT[@]}" "${TEST[@]}"
+echo
+
+echo Testing hhvm, RepoAuthoritative on, No JIT, two MW versions ...
+echo =====================================================================
+repeat ./hhscript --config inuse/config.hdf "${NOJIT[@]}" "${TEST[@]}"
+echo
+
+echo Testing hhvm, RepoAuthoritative on, JIT, two MW versions ...
+echo =====================================================================
+repeat ./hhscript --config inuse/config.hdf "${JIT[@]}" "${TEST[@]}"
+echo
+
+echo Test finished at $(date +%Y-%m-%dT%H:%M)

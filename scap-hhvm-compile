@@ -131,7 +131,6 @@ Log {
   UseLogFile = true
   UseSyslog = false
   File = ${OUTPUT_DIR}/error.log
-  InjectedStackTrace = true
   NativeStackTrace = true
 }
 MySQL {
