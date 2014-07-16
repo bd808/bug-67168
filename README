@@ -26,5 +26,7 @@ bugs in it). Then get benchmarks with:
 
 
 ----
-./build.sh
-./test.sh
+./clean.sh &&
+./build.sh &&
+./test.sh 2>&1 |
+tee results/test-$(date +%Y%m%dT%H%M).log
