@@ -3,7 +3,7 @@
 set -e
 
 WIKI=enwiki
-VERSION=1.24wmf10
+VERSION=1.24wmf12
 PAGE=NOFX
 
 TEST=( maintenance/benchmarks/benchmarkParse.php --wiki=$WIKI $PAGE )
