@@ -113,6 +113,7 @@ Eval {
   EnableZendCompat = true
   Jit = true
   PerfPidMap = false
+  EnableObjDestructCall = true
 }
 Repo {
     Authoritative = true
